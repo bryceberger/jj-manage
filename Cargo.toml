@@ -1,6 +1,16 @@
 [package]
 name = "jj-manage"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
+color-eyre = "0.6.3"
+home = "0.5.11"
+serde = { version = "1.0.217", features = ["derive"] }
+toml = "0.8.19"
+tracing = "0.1.41"
+tracing-error = "0.2.1"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+whoami = "1.5.2"
+xdg = "2.5.2"
