@@ -1,12 +1,9 @@
-use std::{
-    io::{Write, stdout},
-    path::{Path, PathBuf},
-};
+use std::io::{Write, stdout};
 
 use color_eyre::eyre::Result;
 use tracing::instrument;
 
-use crate::config::Config;
+use crate::{config::Config, repos::RepoIter};
 
 #[instrument(skip_all)]
 pub fn run(config: &Config) -> Result<()> {
@@ -21,37 +18,4 @@ pub fn run(config: &Config) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub struct RepoIter {
-    it: walkdir::IntoIter,
-}
-
-impl RepoIter {
-    pub fn new(base: impl AsRef<Path>) -> Self {
-        Self {
-            it: walkdir::WalkDir::new(base).into_iter(),
-        }
-    }
-}
-
-impl Iterator for RepoIter {
-    type Item = PathBuf;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let ent = self.it.next()?;
-            let Ok(ent) = ent else {
-                continue;
-            };
-
-            if ent.file_type().is_dir() && ent.file_name() == ".jj" {
-                self.it.skip_current_dir();
-                let mut path = ent.into_path();
-                if path.pop() {
-                    return Some(path);
-                }
-            }
-        }
-    }
 }

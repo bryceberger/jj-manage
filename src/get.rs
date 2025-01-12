@@ -56,7 +56,7 @@ fn run_clone(remote: &str, target: &Path, colocate: bool) -> Result<()> {
     };
 
     let status = command.status()?;
-    tracing::debug!(?command, %status);
+    tracing::debug!(%status, ?command);
     if !status.success() {
         return Err(color_eyre::eyre::eyre!("clone did not exit successfully"));
     }
