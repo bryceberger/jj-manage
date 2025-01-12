@@ -15,7 +15,7 @@ impl<'a> Repo<'a> {
         let mut it = full_path.strip_prefix(base).ok()?.iter();
         let forge = it.next()?;
         let user = it.next()?;
-        let repo = it.last()?;
+        let repo = it.next_back()?;
         Some(Self { forge, user, repo })
     }
 }

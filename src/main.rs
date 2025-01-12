@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use clap::Parser;
 use color_eyre::eyre::Result;
 use config::Config;
@@ -14,8 +16,9 @@ mod update;
 #[derive(clap::Parser)]
 enum Commands {
     Get(get::Args),
-    List,
+    List(list::Args),
     Update(update::Args),
+    Base,
     Config,
 }
 
@@ -39,8 +42,13 @@ fn main() -> Result<()> {
 async fn run(config: Config) -> Result<()> {
     match Commands::parse() {
         Commands::Get(args) => get::run(&config, args),
-        Commands::List => list::run(&config),
+        Commands::List(args) => list::run(&config, args),
         Commands::Update(args) => update::run(&config, args).await,
+        Commands::Base => {
+            std::io::stdout().write_all(config.base()?.as_os_str().as_encoded_bytes())?;
+            println!();
+            Ok(())
+        }
         Commands::Config => {
             println!("{}", toml::to_string_pretty(&config).unwrap());
             Ok(())
