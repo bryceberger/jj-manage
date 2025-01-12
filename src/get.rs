@@ -1,6 +1,6 @@
 use std::{borrow::Cow, path::Path, process::Command};
 
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::{Result, bail, eyre};
 use tracing::instrument;
 
 use crate::{config::Config, forge::Forge};
@@ -28,14 +28,13 @@ pub enum CloneKind {
 
 #[instrument(skip_all)]
 pub fn run(config: &Config, args: Args) -> Result<()> {
-    let forge = args.forge.map(Forge::from_str);
-    let forge = forge.as_ref().unwrap_or(&config.default_forge);
-    let url: &str = &forge.get_info().url;
+    let forge = args.forge.as_deref().unwrap_or(&config.default_forge);
+    let forge = Forge::named(config, forge).ok_or_else(|| eyre!("unknown forge: {forge}"))?;
 
     let repo = get_repo(config, &args.path);
-    let remote = get_remote(config, url, &repo);
+    let remote = get_remote(config, &forge.info.url, &repo);
     let mut target = config.base()?;
-    target.push(forge.name());
+    target.push(forge.name);
     target.push(repo.as_ref());
 
     tracing::info!(?remote, ?target);

@@ -1,8 +1,8 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use color_eyre::{Result, eyre::OptionExt};
 
-use crate::{forge, get::GetConfig};
+use crate::{forge::Forge, get::GetConfig};
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -10,8 +10,10 @@ pub struct Config {
     base: String,
     #[serde(default = "whoami::username")]
     pub user: String,
-    pub default_forge: forge::Forge,
+    pub default_forge: String,
     pub colocate: bool,
+
+    pub forges: HashMap<String, Forge>,
 
     pub get: GetConfig,
 }
@@ -20,6 +22,9 @@ pub const DEFAULT_CONFIG: &str = r#"
 base = "repos"
 default-forge = "github"
 colocate = true
+
+[forges.github]
+url = "github.com"
 
 [get]
 clone-kind = "ssh"
