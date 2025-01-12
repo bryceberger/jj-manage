@@ -7,9 +7,16 @@ use crate::{config::Config, forge::Forge};
 
 #[derive(clap::Parser)]
 pub struct Args {
+    /// Force cloning with http. Overrides the config value `get.clone-kind`.
+    #[arg(long, conflicts_with = "ssh")]
+    https: bool,
+    /// Force cloning with ssh. Overrides the config value `get.clone-kind`.
+    #[arg(long, conflicts_with = "https")]
+    ssh: bool,
+
     #[arg(short, long)]
     forge: Option<String>,
-    path: String,
+    repo: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default)]
@@ -31,8 +38,8 @@ pub fn run(config: &Config, args: Args) -> Result<()> {
     let forge = args.forge.as_deref().unwrap_or(&config.default_forge);
     let forge = Forge::named(config, forge).ok_or_else(|| eyre!("unknown forge: {forge}"))?;
 
-    let repo = get_repo(config, &args.path);
-    let remote = get_remote(config, &forge.info.url, &repo);
+    let repo = get_repo(config, &args.repo);
+    let remote = get_remote(config, &args, &forge.info.url, &repo);
     let mut target = config.base()?;
     target.push(forge.name);
     target.push(repo.as_ref());
@@ -71,9 +78,13 @@ fn get_repo<'p>(config: &Config, path: &'p str) -> Cow<'p, str> {
     }
 }
 
-fn get_remote(config: &Config, url: &str, path: &str) -> String {
-    match config.get.clone_kind {
-        CloneKind::Ssh => format!("git@{url}:{path}"),
-        CloneKind::Https => format!("{url}/{path}"),
+fn get_remote(config: &Config, args: &Args, url: &str, path: &str) -> String {
+    let ssh = || format!("git@{url}:{path}");
+    let https = || format!("{url}/{path}");
+    match (args.https, args.ssh, &config.get.clone_kind) {
+        (true, _, _) => https(),
+        (_, true, _) => ssh(),
+        (_, _, CloneKind::Https) => https(),
+        (_, _, CloneKind::Ssh) => ssh(),
     }
 }
