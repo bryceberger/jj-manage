@@ -3,16 +3,27 @@ use std::{borrow::Cow, path::Path, process::Command};
 use color_eyre::eyre::{Result, bail};
 use tracing::instrument;
 
-use crate::{
-    config::{CloneKind, Config},
-    forge::Forge,
-};
+use crate::{config::Config, forge::Forge};
 
 #[derive(clap::Parser)]
 pub struct Args {
     #[arg(short, long)]
     forge: Option<String>,
     path: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "kebab-case", default)]
+pub struct GetConfig {
+    pub clone_kind: CloneKind,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Default, PartialEq, Eq, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum CloneKind {
+    #[default]
+    Ssh,
+    Https,
 }
 
 #[instrument(skip_all)]

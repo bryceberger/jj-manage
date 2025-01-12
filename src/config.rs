@@ -2,7 +2,7 @@ use std::{borrow::Cow, path::PathBuf};
 
 use color_eyre::{Result, eyre::OptionExt};
 
-use crate::forge;
+use crate::{forge, get::GetConfig};
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -14,20 +14,6 @@ pub struct Config {
     pub colocate: bool,
 
     pub get: GetConfig,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default)]
-#[serde(rename_all = "kebab-case", default)]
-pub struct GetConfig {
-    pub clone_kind: CloneKind,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Default, PartialEq, Eq, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub enum CloneKind {
-    #[default]
-    Ssh,
-    Https,
 }
 
 pub const DEFAULT_CONFIG: &str = r#"
@@ -50,18 +36,16 @@ impl Config {
     }
 
     pub fn default_layers() -> Result<impl Iterator<Item = Cow<'static, str>>> {
-        let user_config_path =
-            xdg::BaseDirectories::with_prefix("jj-manage")?.get_config_file("config.toml");
-        let user_config = std::fs::read(user_config_path)
-            .map_err(|e| tracing::debug!(%e, "no user config:"))
-            .ok()
-            .and_then(|s| {
-                String::from_utf8(s)
-                    .map_err(|e| tracing::warn!(%e, "ignoring user config:"))
-                    .ok()
-                    .map(Cow::from)
-            });
-        Ok(std::iter::once(DEFAULT_CONFIG.into()).chain(user_config))
+        fn get_user_config() -> Result<Cow<'static, str>, ()> {
+            let path = xdg::BaseDirectories::with_prefix("jj-manage")
+                .map_err(|e| tracing::debug!(%e, "xdg dirs error:"))?;
+            let config = std::fs::read(path.get_config_file("config.toml"))
+                .map_err(|e| tracing::debug!(%e, "while reading user config:"))?;
+            Ok(String::from_utf8(config)
+                .map_err(|e| tracing::warn!(%e, "ignoring user config:"))?
+                .into())
+        }
+        Ok(std::iter::once(DEFAULT_CONFIG.into()).chain(get_user_config()))
     }
 
     pub fn base(&self) -> Result<PathBuf> {

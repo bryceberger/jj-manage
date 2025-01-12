@@ -7,10 +7,12 @@ use tracing_subscriber::{EnvFilter, prelude::*};
 mod config;
 mod forge;
 mod get;
+mod list;
 
 #[derive(clap::Parser)]
 enum Commands {
     Get(get::Args),
+    List,
     Config,
 }
 
@@ -29,6 +31,7 @@ fn main() -> Result<()> {
 
     match Commands::parse() {
         Commands::Get(args) => get::run(&config, args),
+        Commands::List => list::run(&config),
         Commands::Config => {
             println!("{}", toml::to_string_pretty(&config).unwrap());
             Ok(())
