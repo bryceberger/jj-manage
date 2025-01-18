@@ -11,14 +11,18 @@ mod forge;
 mod get;
 mod list;
 mod repos;
+mod resolve;
 mod update;
 
 #[derive(clap::Parser)]
 enum Commands {
     Get(get::Args),
     List(list::Args),
+    Resolve(resolve::Args),
     Update(update::Args),
+    /// Print the base path
     Base,
+    /// Print the resolved config
     Config,
 }
 
@@ -43,6 +47,7 @@ async fn run(config: Config) -> Result<()> {
     match Commands::parse() {
         Commands::Get(args) => get::run(&config, args),
         Commands::List(args) => list::run(&config, args),
+        Commands::Resolve(args) => resolve::run(&config, args),
         Commands::Update(args) => update::run(&config, args).await,
         Commands::Base => {
             std::io::stdout().write_all(config.base()?.as_os_str().as_encoded_bytes())?;

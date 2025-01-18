@@ -8,10 +8,12 @@ use tracing::instrument;
 
 use crate::{config::Config, repos::RepoIter};
 
+/// List paths to managed repositories
 #[derive(clap::Parser)]
 pub struct Args {
+    /// Print absolute paths
     #[arg(short, long)]
-    short: bool,
+    long: bool,
 }
 
 #[instrument(skip_all)]
@@ -23,7 +25,7 @@ pub fn run(config: &Config, args: Args) -> Result<()> {
     let mut stdout = stdout().lock();
     for r in &repos {
         let mut r: &Path = r;
-        if args.short {
+        if !args.long {
             r = r.strip_prefix(&base).unwrap_or(r)
         };
         stdout.write_all(r.as_os_str().as_encoded_bytes())?;

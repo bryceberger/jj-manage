@@ -5,6 +5,7 @@ use tracing::instrument;
 
 use crate::{config::Config, forge::Forge};
 
+/// Clone a repository
 #[derive(clap::Parser)]
 pub struct Args {
     /// Force cloning with http. Overrides the config value `get.clone-kind`.
