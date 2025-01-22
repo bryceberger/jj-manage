@@ -81,7 +81,7 @@ fn get_repo<'p>(config: &Config, path: &'p str) -> Cow<'p, str> {
 
 fn get_remote(config: &Config, args: &Args, url: &str, path: &str) -> String {
     let ssh = || format!("git@{url}:{path}");
-    let https = || format!("{url}/{path}");
+    let https = || format!("https://{url}/{path}");
     match (args.https, args.ssh, &config.get.clone_kind) {
         (true, _, _) => https(),
         (_, true, _) => ssh(),
