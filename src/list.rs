@@ -6,7 +6,7 @@ use std::{
 use color_eyre::eyre::Result;
 use tracing::instrument;
 
-use crate::{config::Config, repos::RepoIter};
+use crate::{config::Config, repos};
 
 /// List paths to managed repositories
 #[derive(clap::Parser)]
@@ -20,7 +20,7 @@ pub struct Args {
 pub fn run(config: &Config, args: Args) -> Result<()> {
     let base = config.base()?;
 
-    let repos: Vec<_> = RepoIter::new(&base).collect();
+    let repos = repos::list(&base);
 
     let mut stdout = stdout().lock();
     for r in &repos {

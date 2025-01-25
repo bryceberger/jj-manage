@@ -8,7 +8,7 @@ use color_eyre::{
     eyre::{Result, eyre},
 };
 
-use crate::{config::Config, repos::RepoIter};
+use crate::{config::Config, repos};
 
 /// Print the path to a repo given its name
 ///
@@ -32,7 +32,8 @@ pub fn run(config: &Config, args: Args) -> Result<()> {
         None => Target::Name(&args.target),
     };
 
-    let repos: Vec<_> = RepoIter::new(&base)
+    let repos: Vec<_> = repos::list(&base)
+        .into_iter()
         .filter_map(|r| {
             let short = r.strip_prefix(&base).ok()?;
             if matches(&target, short)? {

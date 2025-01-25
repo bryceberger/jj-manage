@@ -17,7 +17,7 @@ use tracing::instrument;
 
 use crate::{
     config::Config,
-    repos::{Repo, RepoIter},
+    repos::{self, Repo},
 };
 
 /// Run `jj git fetch` in all repositories.
@@ -38,7 +38,7 @@ pub struct Args {
 #[instrument(skip_all)]
 pub async fn run(config: &Config, args: Args) -> Result<()> {
     let base = config.base()?;
-    let repos = RepoIter::new(&base).filter_map(|p| {
+    let repos = repos::list(&base).into_iter().filter_map(|p| {
         let r = Repo::from_path(&base, &p)?;
         if !{
             contains_or_empty(&args.forge, &r.forge)

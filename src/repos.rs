@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use ignore::{DirEntry, WalkState};
+
 #[derive(Debug)]
 pub struct Repo<'a> {
     pub forge: &'a OsStr,
@@ -20,35 +22,48 @@ impl<'a> Repo<'a> {
     }
 }
 
-pub struct RepoIter {
-    it: walkdir::IntoIter,
-}
+pub fn list(base: &Path) -> Vec<PathBuf> {
+    let (tx, rx) = std::sync::mpsc::channel();
 
-impl RepoIter {
-    pub fn new(base: impl AsRef<Path>) -> Self {
-        Self {
-            it: walkdir::WalkDir::new(base).into_iter(),
-        }
-    }
-}
-
-impl Iterator for RepoIter {
-    type Item = PathBuf;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let ent = self.it.next()?;
-            let Ok(ent) = ent else {
-                continue;
-            };
-
-            if ent.file_type().is_dir() && ent.file_name() == ".jj" {
-                self.it.skip_current_dir();
-                let mut path = ent.into_path();
-                if path.pop() {
-                    return Some(path);
+    ignore::WalkBuilder::new(base)
+        .hidden(true)
+        .build_parallel()
+        .run(|| {
+            let tx = tx.clone();
+            Box::new(move |ent| {
+                let (jj_base, ret) = has_jj_dir(ent);
+                if let Some(jj_base) = jj_base {
+                    if tx.send(jj_base).is_err() {
+                        return WalkState::Quit;
+                    }
                 }
-            }
-        }
+                ret
+            })
+        });
+    drop(tx);
+
+    rx.into_iter().collect()
+}
+
+fn has_jj_dir(ent: Result<DirEntry, ignore::Error>) -> (Option<PathBuf>, WalkState) {
+    let Ok(ent) = ent else {
+        return (None, WalkState::Skip);
+    };
+
+    if !ent.file_type().is_some_and(|t| t.is_dir()) {
+        return (None, WalkState::Skip);
+    }
+    let path = ent.path();
+
+    let Ok(mut ents) = std::fs::read_dir(path) else {
+        return (None, WalkState::Skip);
+    };
+    if ents.any(|e| {
+        e.as_ref()
+            .is_ok_and(|e| e.file_name() == ".jj" && e.file_type().is_ok_and(|t| t.is_dir()))
+    }) {
+        (Some(ent.into_path()), WalkState::Skip)
+    } else {
+        (None, WalkState::Continue)
     }
 }
