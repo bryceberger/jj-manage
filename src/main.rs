@@ -19,6 +19,7 @@ enum Commands {
     Get(get::Args),
     List(list::Args),
     Resolve(resolve::Args),
+    #[command(alias = "up")]
     Update(update::Args),
     /// Print the base path
     Base,
