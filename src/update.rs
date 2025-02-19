@@ -1,5 +1,6 @@
 use std::{
     ffi::OsString,
+    io::Write,
     path::PathBuf,
     process::Stdio,
     sync::{Arc, Mutex},
@@ -8,6 +9,10 @@ use std::{
 
 use bytes::BytesMut;
 use color_eyre::eyre::Result;
+use crossterm::{
+    ExecutableCommand,
+    terminal::{DisableLineWrap, EnableLineWrap},
+};
 use futures::{FutureExt, StreamExt};
 use tokio::{
     io::AsyncReadExt,
@@ -117,8 +122,10 @@ struct State {
 }
 
 async fn printer(state: Arc<Mutex<State>>) {
-    let chars = ["/", "-", "\\", "|"];
-    let mut ch = chars.iter().cycle();
+    let mut chars = ['/', '-', '\\', '|'].iter().cycle();
+
+    let _ = std::io::stdout().execute(DisableLineWrap);
+
     loop {
         {
             let mut state = state.lock().unwrap();
@@ -127,7 +134,7 @@ async fn printer(state: Arc<Mutex<State>>) {
             }
 
             state.should_print_newline = true;
-            print!("\r\x1b[K{} updating: ", ch.next().unwrap());
+            print!("\r{} updating: ", chars.next().unwrap());
 
             for (idx, ch) in state.running_children.iter().enumerate() {
                 let last = idx == state.running_children.len() - 1;
@@ -135,11 +142,12 @@ async fn printer(state: Arc<Mutex<State>>) {
                 print!("{ch}{end}");
             }
 
-            use std::io::Write;
             std::io::stdout().flush().ok();
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
+
+    let _ = std::io::stdout().execute(EnableLineWrap);
 }
 
 async fn run_child(state: Arc<Mutex<State>>, repo: String, mut child: Child) {
