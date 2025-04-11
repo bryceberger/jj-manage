@@ -22,13 +22,14 @@
         cargo = toolchain;
       };
     in {
-      packages.jujutsu-manage = ourRustPlatform.buildRustPackage {
-        pname = "jujutsu-manage";
+      packages.jj-manage = ourRustPlatform.buildRustPackage {
+        pname = "jj-manage";
         version = "unstable-${self.shortRev or "dirty"}";
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
+        meta.mainProgram = "jj-manage";
       };
-      packages.default = self.packages.${system}.jujutsu-manage;
+      packages.default = self.packages.${system}.jj-manage;
 
       devShell = pkgs.mkShell {
         name = "jj-manage";
