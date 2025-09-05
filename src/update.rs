@@ -1,7 +1,7 @@
 use std::{
     ffi::OsString,
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Stdio,
     sync::{Arc, Mutex},
     time::Duration,
@@ -61,7 +61,9 @@ pub async fn run(config: &Config, args: Args) -> Result<()> {
         Some((p, name))
     });
 
-    Preschool::from_repos(repos).run().await;
+    Preschool::from_repos(repos, config.gitconfig_for_update.as_deref())
+        .run()
+        .await;
 
     Ok(())
 }
@@ -78,9 +80,15 @@ struct Preschool {
 }
 
 impl Preschool {
-    fn from_repos(repos: impl Iterator<Item = (PathBuf, String)>) -> Self {
+    fn from_repos(
+        repos: impl Iterator<Item = (PathBuf, String)>,
+        gitconfig: Option<&Path>,
+    ) -> Self {
         let children = repos.flat_map(|(r, name)| {
             let mut command = Command::new("jj");
+            if let Some(config) = gitconfig {
+                command.env("GIT_CONFIG_GLOBAL", config);
+            }
             command
                 .arg("-R")
                 .arg(&r)

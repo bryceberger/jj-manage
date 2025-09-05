@@ -16,6 +16,8 @@ pub struct Config {
     pub forges: HashMap<String, Forge>,
 
     pub get: GetConfig,
+
+    pub gitconfig_for_update: Option<PathBuf>,
 }
 
 pub const DEFAULT_CONFIG: &str = r#"
