@@ -4,11 +4,15 @@ use color_eyre::{Result, eyre::OptionExt};
 
 use crate::{forge::Forge, get::GetConfig};
 
+fn username() -> String {
+    whoami::username().unwrap()
+}
+
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     base: String,
-    #[serde(default = "whoami::username")]
+    #[serde(default = "username")]
     pub user: String,
     pub default_forge: String,
     pub colocate: bool,
@@ -43,14 +47,13 @@ impl Config {
     }
 
     pub fn default_layers() -> Result<impl Iterator<Item = Cow<'static, str>>> {
-        fn get_user_config() -> Result<Cow<'static, str>, ()> {
-            let path = xdg::BaseDirectories::with_prefix("jj-manage")
-                .map_err(|e| tracing::debug!(%e, "xdg dirs error:"))?;
-            let config = std::fs::read(path.get_config_file("config.toml"))
-                .map_err(|e| tracing::debug!(%e, "while reading user config:"))?;
-            Ok(String::from_utf8(config)
-                .map_err(|e| tracing::warn!(%e, "ignoring user config:"))?
-                .into())
+        fn get_user_config() -> Option<Cow<'static, str>> {
+            let path = xdg::BaseDirectories::with_prefix("jj-manage");
+            let config_path = path.get_config_file("config.toml")?;
+            let config = std::fs::read_to_string(config_path)
+                .inspect_err(|e| tracing::debug!(%e, "while reading user config:"))
+                .ok()?;
+            Some(config.into())
         }
         Ok(std::iter::once(DEFAULT_CONFIG.into()).chain(get_user_config()))
     }

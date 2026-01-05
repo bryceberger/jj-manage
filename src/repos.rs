@@ -32,10 +32,10 @@ pub fn list(base: &Path) -> Vec<PathBuf> {
             let tx = tx.clone();
             Box::new(move |ent| {
                 let (jj_base, ret) = has_jj_dir(ent);
-                if let Some(jj_base) = jj_base {
-                    if tx.send(jj_base).is_err() {
-                        return WalkState::Quit;
-                    }
+                if let Some(jj_base) = jj_base
+                    && tx.send(jj_base).is_err()
+                {
+                    return WalkState::Quit;
                 }
                 ret
             })
