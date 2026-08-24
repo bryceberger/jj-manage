@@ -6,8 +6,18 @@ pub struct NamedForge<'a> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct Forge {
     pub url: String,
+    pub clone_kind: Option<CloneKind>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Default, PartialEq, Eq, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum CloneKind {
+    #[default]
+    Ssh,
+    Https,
 }
 
 impl Forge {

@@ -3,15 +3,20 @@ use std::{borrow::Cow, path::Path, process::Command};
 use color_eyre::eyre::{Result, bail, eyre};
 use tracing::instrument;
 
-use crate::{config::Config, forge::Forge};
+use crate::{
+    config::Config,
+    forge::{CloneKind, Forge},
+};
 
 /// Clone a repository
 #[derive(clap::Parser)]
 pub struct Args {
-    /// Force cloning with http. Overrides the config value `get.clone-kind`.
+    /// Force cloning with http. Overrides the config values `get.clone-kind`
+    /// and `<forge>.clone-kind`.
     #[arg(long, conflicts_with = "ssh")]
     https: bool,
-    /// Force cloning with ssh. Overrides the config value `get.clone-kind`.
+    /// Force cloning with ssh. Overrides the config values `get.clone-kind`
+    /// and `<forge>.clone-kind`.
     #[arg(long, conflicts_with = "https")]
     ssh: bool,
 
@@ -26,21 +31,13 @@ pub struct GetConfig {
     pub clone_kind: CloneKind,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default, PartialEq, Eq, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub enum CloneKind {
-    #[default]
-    Ssh,
-    Https,
-}
-
 #[instrument(skip_all)]
 pub fn run(config: &Config, args: Args) -> Result<()> {
     let forge = args.forge.as_deref().unwrap_or(&config.default_forge);
     let forge = Forge::named(config, forge).ok_or_else(|| eyre!("unknown forge: {forge}"))?;
 
     let repo = get_repo(config, &args.repo);
-    let remote = get_remote(config, &args, &forge.info.url, &repo);
+    let remote = get_remote(config, &args, &forge.info, &repo);
     let mut target = config.base()?;
     target.push(forge.name);
     target.push(repo.as_ref());
@@ -79,10 +76,13 @@ fn get_repo<'p>(config: &Config, path: &'p str) -> Cow<'p, str> {
     }
 }
 
-fn get_remote(config: &Config, args: &Args, url: &str, path: &str) -> String {
+fn get_remote(config: &Config, args: &Args, forge: &Forge, path: &str) -> String {
+    let url = &forge.url;
+    let clone_kind = forge.clone_kind.as_ref().unwrap_or(&config.get.clone_kind);
+
     let ssh = || format!("git@{url}:{path}");
     let https = || format!("https://{url}/{path}");
-    match (args.https, args.ssh, &config.get.clone_kind) {
+    match (args.https, args.ssh, clone_kind) {
         (true, _, _) => https(),
         (_, true, _) => ssh(),
         (_, _, CloneKind::Https) => https(),
